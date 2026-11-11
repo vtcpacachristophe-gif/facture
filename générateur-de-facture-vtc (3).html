@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Facture – VTC</title>
+<style>
+  :root { --or: #d4a94e; --nuit: #0d1b2e; --texte: #333; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Georgia, "Times New Roman", serif; background: #f0ede6; color: var(--texte); padding: 16px; }
+  .app { max-width: 820px; margin: 0 auto; }
+  h2 { font-size: 15px; letter-spacing: 2px; text-transform: uppercase; color: var(--nuit); margin: 18px 0 8px; border-bottom: 2px solid var(--or); padding-bottom: 4px; }
+  .bloc { background: #fff; border: 1px solid #d8d2c4; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .grille { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grille-3 { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; align-items: center; }
+  label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #777; margin-bottom: 3px; }
+  input, textarea, select {
+    width: 100%; padding: 9px 10px; font-size: 14px; font-family: inherit;
+    border: 1px solid #c8c2b4; border-radius: 7px; background: #fbfaf7; color: var(--texte);
+  }
+  input:focus, textarea:focus { border-color: var(--or); outline: none; }
+  button {
+    font-family: inherit; cursor: pointer; border: none; border-radius: 20px;
+    padding: 10px 22px; font-size: 14px; font-weight: bold;
+  }
+  .btn-or { background: var(--or); color: #fff; }
+  .btn-rouge { background: #b23a3a; color: #fff; font-size: 12px; padding: 6px 12px; }
+  .actions { display: flex; gap: 10px; justify-content: center; margin: 18px 0; flex-wrap: wrap; }
+
+  /* ===== FACTURE ===== */
+  .facture { background: #fff; border: 1px solid #ccc; padding: 34px 38px; display: none; }
+  .facture .entete { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; }
+  .f-societe h3 { font-size: 22px; color: var(--nuit); letter-spacing: 1px; }
+  .f-societe p { font-size: 12px; line-height: 1.55; color: #555; white-space: pre-line; }
+  .f-titre { text-align: right; }
+  .f-titre .grand { font-size: 34px; font-weight: bold; letter-spacing: 6px; color: var(--nuit); }
+  .f-titre .grand span { color: var(--or); }
+  .f-titre table { margin-top: 8px; margin-left: auto; font-size: 13px; }
+  .f-titre td { padding: 2px 0 2px 14px; }
+  .f-titre td:first-child { color: #777; }
+  .f-client { background: #f7f5ef; border-left: 3px solid var(--or); padding: 14px 16px; font-size: 13.5px; line-height: 1.6; white-space: pre-line; margin-bottom: 24px; }
+  .f-client .lib { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #777; }
+  table.lignes { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 22px; }
+  table.lignes th { background: var(--nuit); color: #fff; text-align: left; padding: 9px 10px; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  table.lignes td { padding: 9px 10px; border-bottom: 1px solid #e5e0d3; }
+  table.lignes td:last-child, table.lignes th:last-child { text-align: right; }
+  .totaux { margin-left: auto; width: 260px; font-size: 14px; }
+  .totaux td { padding: 5px 0; }
+  .totaux td:last-child { text-align: right; }
+  .totaux .grand { font-size: 19px; font-weight: bold; color: var(--nuit); border-top: 2px solid var(--or); }
+  .f-pied { margin-top: 28px; font-size: 11px; color: #777; line-height: 1.6; border-top: 1px solid #ddd; padding-top: 12px; }
+  .retour { display: none; text-align: center; margin: 14px 0; }
+  .mobile-note { display: none; font-size: 11px; color: #888; text-align: center; margin-top: 8px; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .formulaire, h2, .retour, .mobile-note { display: none !important; }
+    .facture { display: block !important; border: none; padding: 0; }
+    @page { size: A4; margin: 15mm; }
+  }
+  @media (max-width: 600px) {
+    .grille, .grille-3 { grid-template-columns: 1fr; }
+    .facture { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="formulaire">
+    <h2>Ma société (mémorisée sur cet appareil)</h2>
+    <div class="bloc">
+      <div class="grille">
+        <div><label>Nom de la société</label><input id="so-nom" placeholder="Ex : EURL MA SOCIÉTÉ" /></div>
+        <div><label>Statut / Marque affichée</label><input id="so-marque" placeholder="Ex : Mon enseigne" /></div>
+        <div><label>SIREN / RCS</label><input id="so-siren" placeholder="Ex : SIREN 123 456 789 · RCS de ma ville" /></div>
+        <div><label>TVA intracom. (si applicable)</label><input id="so-tva" placeholder="Ex : FR99xxxxxxxxx" /></div>
+        <div><label>Téléphone</label><input id="so-tel" placeholder="Ex : 06 12 34 56 78" /></div>
+        <div><label>Email</label><input id="so-mail" placeholder="Ex : contact@masociete.fr" /></div>
+      </div>
+      <div style="margin-top:10px"><label>Adresse</label><textarea id="so-adresse" rows="2" placeholder="2520 route d'Éguilles&#10;13090 Aix-en-Provence"></textarea></div>
+    </div>
+
+    <h2>Facture</h2>
+    <div class="bloc">
+      <div class="grille">
+        <div><label>Numéro de facture</label><input id="fa-num" /></div>
+        <div><label>Date</label><input id="fa-date" type="date" /></div>
+        <div><label>Client</label><input id="fa-client" placeholder="Nom du client" /></div>
+        <div><label>Payée entièrement le (optionnel)</label><input id="fa-paye" type="date" /></div>
+      </div>
+      <div style="margin-top:10px"><label>Adresse du client (optionnel)</label><input id="fa-adresse" placeholder="Adresse, ville" /></div>
+    </div>
+
+    <h2>Prestations</h2>
+    <div class="bloc">
+      <div id="lignes"></div>
+      <div style="margin-top:10px"><button class="btn-rouge" id="btn-ajout">+ Ajouter une ligne</button></div>
+      <div style="margin-top:14px; max-width:400px">
+        <div><label>Taux de TVA</label>
+          <select id="fa-tva">
+            <option value="0">Sans TVA (franchise)</option>
+            <option value="10" selected>10 % (transport de voyageurs)</option>
+            <option value="20">20 %</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <h2>Règlements (plusieurs paiements possibles)</h2>
+    <div class="bloc">
+      <div id="paiements"></div>
+      <div style="margin-top:10px"><button class="btn-rouge" id="btn-paie">+ Ajouter un paiement</button></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-or" id="btn-generer">🧾 Voir la facture</button>
+      <button class="btn-rouge" id="btn-exemple">👀 Voir un exemple</button>
+    </div>
+    <p class="mobile-note">Pour enregistrer en PDF sur iPhone : bouton Partager → Marquer / Imprimer → pincer la vignette → Partager → Enregistrer au format PDF</p>
+  </div>
+
+  <div class="retour"><button class="btn-or" id="btn-print">🖨️ Imprimer / PDF</button> <button class="btn-rouge" id="btn-retour">← Modifier</button></div>
+
+  <div class="facture" id="facture">
+    <div class="entete">
+      <div class="f-societe">
+        <h3 id="F-so"></h3>
+        <p id="F-so-detail"></p>
+      </div>
+      <div class="f-titre">
+        <div class="grand" id="F-marque"></div>
+        <table>
+          <tr><td>Facture n°</td><td id="F-num"></td></tr>
+          <tr><td>Date</td><td id="F-date"></td></tr>
+          <tr><td>Règlement</td><td id="F-paye"></td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="f-client"><div class="lib">Facturé à</div><span id="F-client"></span></div>
+    <table class="lignes">
+      <thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">Prix unitaire</th><th>Total</th></tr></thead>
+      <tbody id="F-lignes"></tbody>
+    </table>
+    <table class="totaux" id="F-totaux"></table>
+    <div class="f-pied" id="F-pied"></div>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const eur = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+/* ===== Société mémorisée (localStorage) ===== */
+const CHAMPS_SO = ["so-nom","so-marque","so-siren","so-tva","so-tel","so-mail","so-adresse"];
+function charger() {
+  try {
+    const d = JSON.parse(localStorage.getItem("soc-vtc") || "{}");
+    CHAMPS_SO.forEach(c => { if (d[c]) $(c).value = d[c]; });
+  } catch(e) {}
+  const l = JSON.parse(localStorage.getItem("ligne-vtc") || "[]");
+  (l.length ? l : [{d:"",q:1,p:""}]).forEach(x => ajouterLigne(x.d, x.q, x.p));
+  const num = localStorage.getItem("fact-num");
+  const annee = new Date().getFullYear();
+  $("fa-num").value = num || (annee + "-001");
+  $("fa-date").value = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+CHAMPS_SO.forEach(c => $(c).addEventListener("input", () => {
+  const d = {}; CHAMPS_SO.forEach(x => d[x] = $(x).value);
+  localStorage.setItem("soc-vtc", JSON.stringify(d));
+}));
+
+/* ===== Lignes ===== */
+function ajouterLigne(d="", q=1, p="") {
+  const div = document.createElement("div");
+  div.className = "grille-3";
+  div.style.marginBottom = "8px";
+  div.innerHTML =
+    '<input class="l-des" placeholder="Ex : Course Aix → Aéroport Marseille" value="' + d + '" />' +
+    '<input class="l-qte" type="number" min="1" step="1" value="' + q + '" />' +
+    '<input class="l-pu" type="number" min="0" step="0.01" value="' + p + '" />' +
+    '<button class="btn-rouge btn-suppr" title="Supprimer cette ligne">✕</button>';
+  div.querySelector(".btn-suppr").addEventListener("click", () => div.remove());
+  $("lignes").appendChild(div);
+}
+
+function ajouterPaiement(d="", m="Virement", a="") {
+  const div = document.createElement("div");
+  div.className = "grille-3";
+  div.style.marginBottom = "8px";
+  div.innerHTML =
+    '<input class="p-date" type="date" value="' + d + '" />' +
+    '<select class="p-moyen">' + ["Virement", "Carte bancaire", "Espèces", "Chèque", "Application", "Autre"]
+      .map(x => '<option' + (x === m ? ' selected' : '') + '>' + x + '</option>').join("") + '</select>' +
+    '<input class="p-montant" type="number" min="0" step="0.01" placeholder="Montant €" value="' + a + '" />' +
+    '<button class="btn-rouge btn-suppr" title="Supprimer ce paiement">✕</button>';
+  div.querySelector(".btn-suppr").addEventListener("click", () => div.remove());
+  $("paiements").appendChild(div);
+}
+
+/* ===== Génération ===== */
+function generer() {
+  const socNom = $("so-nom").value.trim();
+  if (!socNom) { alert("Indique au moins le nom de ta société."); return; }
+  const lignes = [];
+  document.querySelectorAll("#lignes .grille-3").forEach(l => {
+    const des = l.querySelector(".l-des").value.trim();
+    const qte = parseFloat(l.querySelector(".l-qte").value) || 0;
+    const pu = parseFloat(l.querySelector(".l-pu").value) || 0;
+    if (des && (qte * pu) > 0) lignes.push({ des, qte, pu, tot: qte * pu });
+  });
+  if (!lignes.length) { alert("Ajoute au moins une prestation avec un prix."); return; }
+
+  const ht = lignes.reduce((s, l) => s + l.tot, 0);
+  const tvaTaux = parseFloat($("fa-tva").value);
+  const tva = ht * tvaTaux / 100;
+  const ttc = ht + tva;
+
+  $("F-so").textContent = socNom;
+  const detail = [$("so-adresse").value.trim(), $("so-siren").value.trim(), $("so-tva").value.trim(),
+    [$("so-tel").value.trim(), $("so-mail").value.trim()].filter(Boolean).join(" · ")].filter(Boolean).join("\n");
+  $("F-so-detail").textContent = detail;
+  $("F-marque").textContent = ($("so-marque").value.trim() || socNom);
+  $("F-num").textContent = $("fa-num").value;
+  $("F-date").textContent = new Date($("fa-date").value).toLocaleDateString("fr-FR");
+  $("F-paye").textContent = $("fa-paye").value ? new Date($("fa-paye").value).toLocaleDateString("fr-FR") : "à réception";
+  $("F-client").textContent = [$("fa-client").value.trim(), $("fa-adresse").value.trim()].filter(Boolean).join("\n");
+
+  $("F-lignes").innerHTML = lignes.map(l =>
+    "<tr><td>" + l.des.replace(/</g,"&lt;") + "</td><td style='text-align:right'>" + l.qte +
+    "</td><td style='text-align:right'>" + eur(l.pu) + "</td><td>" + eur(l.tot) + "</td></tr>").join("");
+
+  const regles = [];
+  document.querySelectorAll("#paiements .grille-3").forEach(r => {
+    const dRaw = r.querySelector(".p-date").value;
+    const moyen = r.querySelector(".p-moyen").value;
+    const a = parseFloat(r.querySelector(".p-montant").value) || 0;
+    if (a > 0) regles.push({ d: dRaw ? new Date(dRaw).toLocaleDateString("fr-FR") : "", m: moyen, a: a });
+  });
+  const paye = regles.reduce((s, x) => s + x.a, 0);
+  const reste = ttc - paye;
+
+  let tot = "<tr><td>Total HT</td><td>" + eur(ht) + "</td></tr>" +
+    "<tr><td>TVA " + (tvaTaux ? "(" + tvaTaux + " %)" : "") + "</td><td>" + eur(tva) + "</td></tr>" +
+    "<tr class='grand'><td>Total TTC</td><td>" + eur(ttc) + "</td></tr>";
+  regles.forEach(x => {
+    tot += "<tr><td>Règlement " + x.m + (x.d ? ", le " + x.d : "") + "</td><td>− " + eur(x.a) + "</td></tr>";
+  });
+  if (paye > 0) tot += "<tr class='grand'><td>Reste à payer</td><td>" + eur(Math.max(reste, 0)) + "</td></tr>";
+  $("F-totaux").innerHTML = tot;
+  if (paye > 0) $("F-paye").textContent = reste <= 0.005 ? "soldée" : "partielle";
+
+  const pied = [
+    tvaTaux === 0 ? "TVA non applicable, en franchise de TVA (art. 293 B du CGI)" : "",
+    "Penalité de retard : 3× le taux d'intérêt légal, indemnité forfaitaire de 40 € (art. L441-10 du Code de commerce)."]
+    .filter(Boolean);
+  $("F-pied").textContent = pied.join(" · ");
+
+  /* mémorise le numéro pour la prochaine facture */
+  const m = $("fa-num").value.match(/(\d{4})-(\d+)/);
+  if (m) {
+    const n = (parseInt(m[2], 10) + 1).toString().padStart(3, "0");
+    localStorage.setItem("fact-num", m[1] + "-" + n);
+  }
+
+  document.querySelector(".formulaire").style.display = "none";
+  $("facture").style.display = "block";
+  document.querySelector(".retour").style.display = "block";
+  if (window.innerWidth < 600) $("mobile-note").style.display = "block";
+}
+
+charger();
+
+/* ===== Boutons (branchés proprement, compatibles aperçu et fichier téléchargé) ===== */
+$("btn-ajout").addEventListener("click", () => ajouterLigne());
+$("btn-paie").addEventListener("click", () => ajouterPaiement());
+$("btn-generer").addEventListener("click", generer);
+$("btn-exemple").addEventListener("click", () => {
+  if (!confirm("Cela remplace le contenu des champs par une facture fictive. Continuer ?")) return;
+  $("so-nom").value = "EURL MON ENTREPRISE";
+  $("so-marque").value = "MON ENSEIGNE VTC";
+  $("so-siren").value = "SIREN 123 456 789 · RCS de ma ville";
+  $("so-tel").value = "06 12 34 56 78";
+  $("so-mail").value = "contact@mon-enseigne.fr";
+  $("so-adresse").value = "12 rue de la Gare\n13090 Aix-en-Provence";
+  $("fa-client").value = "Société DUPONT";
+  $("fa-adresse").value = "45 avenue Victor Hugo, 13100 Aix-en-Provence";
+  $("lignes").innerHTML = "";
+  ajouterLigne("Course Aix-en-Provence → Aéroport Marseille (aller)", 1, 51);
+  ajouterLigne("Attente sur place", 1, 15);
+  ajouterLigne("Course retour Aéroport → Aix-en-Provence", 1, 51);
+  const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  $("fa-date").value = d;
+  $("fa-paye").value = d;
+  $("paiements").innerHTML = "";
+  ajouterPaiement(d, "Virement", 60);
+  ajouterPaiement(d, "Espèces", 20);
+  generer();
+});
+$("btn-print").addEventListener("click", () => window.print());
+$("btn-retour").addEventListener("click", () => location.reload());
+</script>
+</body>
+</html>
